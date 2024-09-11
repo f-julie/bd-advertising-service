@@ -1,5 +1,6 @@
 package com.amazon.ata.advertising.service.targeting.predicate;
 
+import com.amazon.ata.advertising.service.dependency.DaggerLambdaComponent;
 import com.amazon.ata.advertising.service.exceptions.AdvertisementServiceException;
 import com.amazon.ata.advertising.service.dependency.LambdaComponent;
 import com.amazon.ata.advertising.service.dependency.TargetingPredicateInjector;
@@ -46,7 +47,7 @@ public class TargetingPredicateTypeConverter implements DynamoDBTypeConverter<St
 
     @Override
     public List<TargetingPredicate> unconvert(String value) {
-        LambdaComponent component = null; //TODO: DaggerLambdaComponent.create();
+        LambdaComponent component = DaggerLambdaComponent.create(); // Used to be null
         TargetingPredicateInjector injector = component.getTargetingPredicateInjector();
         try {
             final List<TargetingPredicate> predicates = MAPPER.readValue(value,

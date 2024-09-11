@@ -4,6 +4,8 @@ import com.amazon.ata.advertising.service.dao.ReadableDao;
 import com.amazon.ata.advertising.service.model.AdvertisementContent;
 import com.amazon.ata.advertising.service.model.EmptyGeneratedAdvertisement;
 import com.amazon.ata.advertising.service.model.GeneratedAdvertisement;
+import com.amazon.ata.advertising.service.model.RequestContext;
+import com.amazon.ata.advertising.service.targeting.TargetingEvaluator;
 import com.amazon.ata.advertising.service.targeting.TargetingGroup;
 
 import org.apache.commons.collections4.CollectionUtils;
@@ -56,7 +58,7 @@ public class AdvertisementSelectionLogic {
      *     not be generated.
      */
     public GeneratedAdvertisement selectAdvertisement(String customerId, String marketplaceId) {
-        GeneratedAdvertisement generatedAdvertisement = new EmptyGeneratedAdvertisement();
+        /*GeneratedAdvertisement generatedAdvertisement = new EmptyGeneratedAdvertisement();
         if (StringUtils.isEmpty(marketplaceId)) {
             LOG.warn("MarketplaceId cannot be null or empty. Returning empty ad.");
         } else {
@@ -67,6 +69,37 @@ public class AdvertisementSelectionLogic {
                 generatedAdvertisement = new GeneratedAdvertisement(randomAdvertisementContent);
             }
 
+        }
+
+        return generatedAdvertisement;*/
+
+        GeneratedAdvertisement generatedAdvertisement = new EmptyGeneratedAdvertisement();
+        if (StringUtils.isEmpty(marketplaceId)) {
+            LOG.warn("MarketplaceId cannot be null or empty. Returning empty ad.");
+        } else {
+            final List<AdvertisementContent> contents = contentDao.get(marketplaceId);
+            List<AdvertisementContent> eligibleAds = new ArrayList<>();
+
+            if (CollectionUtils.isNotEmpty(contents)) {
+                for (AdvertisementContent content : contents) {
+                    List<TargetingGroup> targetingGroups = targetingGroupDao.get(content.getContentId());
+                    TargetingEvaluator evaluator = new TargetingEvaluator(new RequestContext(customerId, marketplaceId)); // Ensure requestContext is available
+
+                    // Check eligibility using streams
+                    boolean isEligible = targetingGroups.stream()
+                            .anyMatch(targetingGroup -> evaluator.evaluate(targetingGroup).isTrue());
+
+                    if (isEligible) {
+                        eligibleAds.add(content);
+                    }
+                }
+
+                // Randomly select one of the eligible ads
+                if (!eligibleAds.isEmpty()) {
+                    AdvertisementContent randomAdvertisementContent = eligibleAds.get(random.nextInt(eligibleAds.size()));
+                    generatedAdvertisement = new GeneratedAdvertisement(randomAdvertisementContent);
+                }
+            }
         }
 
         return generatedAdvertisement;

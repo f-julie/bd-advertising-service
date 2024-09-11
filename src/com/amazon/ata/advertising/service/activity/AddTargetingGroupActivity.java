@@ -14,6 +14,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 
 /**
@@ -24,7 +25,7 @@ import javax.inject.Inject;
  * clickThroughRate can be learned.
  */
 public class AddTargetingGroupActivity {
-    public static final boolean IMPLEMENTED_STREAMS = false;
+    public static final boolean IMPLEMENTED_STREAMS = true;
     private static final Logger LOG = LogManager.getLogger(AddTargetingGroupActivity.class);
 
     private final TargetingGroupDao targetingGroupDao;
@@ -44,7 +45,7 @@ public class AddTargetingGroupActivity {
      * @return The service response
      */
     public AddTargetingGroupResponse addTargetingGroup(AddTargetingGroupRequest request) {
-        String contentId = request.getContentId();
+        /*String contentId = request.getContentId();
         List<com.amazon.ata.advertising.service.model.TargetingPredicate> requestedTargetingPredicates =
             request.getTargetingPredicates();
         LOG.info(String.format("Adding targeting predicates [%s] to content with id: %s.",
@@ -59,6 +60,25 @@ public class AddTargetingGroupActivity {
                 targetingPredicates.add(predicate);
             }
         }
+
+        TargetingGroup targetingGroup = targetingGroupDao.create(contentId, targetingPredicates);
+
+        return AddTargetingGroupResponse.builder()
+                .withTargetingGroup(TargetingGroupTranslator.toCoral(targetingGroup))
+                .build();*/
+
+        String contentId = request.getContentId();
+        List<com.amazon.ata.advertising.service.model.TargetingPredicate> requestedTargetingPredicates =
+                request.getTargetingPredicates();
+        LOG.info(String.format("Adding targeting predicates [%s] to content with id: %s.",
+                requestedTargetingPredicates,
+                contentId));
+
+        List<TargetingPredicate> targetingPredicates = requestedTargetingPredicates != null ?
+                requestedTargetingPredicates.stream()
+                        .map(TargetingPredicateTranslator::fromCoral)
+                        .collect(Collectors.toList()) :
+                new ArrayList<>();
 
         TargetingGroup targetingGroup = targetingGroupDao.create(contentId, targetingPredicates);
 
