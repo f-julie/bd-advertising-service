@@ -4,7 +4,12 @@ import com.amazon.ata.advertising.service.model.RequestContext;
 import com.amazon.ata.advertising.service.targeting.predicate.TargetingPredicate;
 import com.amazon.ata.advertising.service.targeting.predicate.TargetingPredicateResult;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 /**
  * Evaluates TargetingPredicates for a given RequestContext.
@@ -44,10 +49,40 @@ public class TargetingEvaluator {
 
         List<TargetingPredicate> targetingPredicates = targetingGroup.getTargetingPredicates();
 
-        boolean allTruePredicates = targetingPredicates.stream()  // Create a stream from the list
-                .allMatch(predicate -> predicate.evaluate(requestContext).isTrue()); // Check if all predicates are true
+        // Create a fixed thread pool
+        ExecutorService executorService = Executors.newFixedThreadPool(10); // Adjust the pool size as needed
+        List<Future<TargetingPredicateResult>> futures = new ArrayList<>();
 
-        return allTruePredicates ? TargetingPredicateResult.TRUE :
-                TargetingPredicateResult.FALSE;
+        try {
+            // Submit tasks for each predicate
+            for (TargetingPredicate predicate : targetingPredicates) {
+                Callable<TargetingPredicateResult> task = () -> predicate.evaluate(requestContext);
+                futures.add(executorService.submit(task));
+            }
+
+            // Check if all predicates are true
+            boolean allTruePredicates = true;
+            for (Future<TargetingPredicateResult> future : futures) {
+                try {
+                    if (!future.get().isTrue()) {
+                        allTruePredicates = false;
+                        break; // Exit early if one is false
+                    }
+                } catch (Exception e) {
+                    // Handle exceptions for individual predicate evaluations
+                    allTruePredicates = false;
+                    break;
+                }
+            }
+
+            //boolean allTruePredicates = targetingPredicates.stream()  // Create a stream from the list
+            //        .allMatch(predicate -> predicate.evaluate(requestContext).isTrue()); // Check if all predicates are true
+
+            return allTruePredicates ? TargetingPredicateResult.TRUE :
+                    TargetingPredicateResult.FALSE;
+        } finally {
+            // Shutdown the executor service
+            executorService.shutdown();
+        }
     }
 }
