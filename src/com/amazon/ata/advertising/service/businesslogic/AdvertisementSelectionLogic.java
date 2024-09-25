@@ -29,7 +29,8 @@ public class AdvertisementSelectionLogic {
 
     /**
      * Constructor for AdvertisementSelectionLogic.
-     * @param contentDao Source of advertising content.
+     *
+     * @param contentDao        Source of advertising content.
      * @param targetingGroupDao Source of targeting groups for each advertising content.
      */
     @Inject
@@ -41,6 +42,7 @@ public class AdvertisementSelectionLogic {
 
     /**
      * Setter for Random class.
+     *
      * @param random generates random number used to select advertisements.
      */
     public void setRandom(Random random) {
@@ -52,10 +54,10 @@ public class AdvertisementSelectionLogic {
      * eligible content with the highest click through rate.  If no advertisement is available or eligible, returns an
      * EmptyGeneratedAdvertisement.
      *
-     * @param customerId - the customer to generate a custom advertisement for
+     * @param customerId    - the customer to generate a custom advertisement for
      * @param marketplaceId - the id of the marketplace the advertisement will be rendered on
      * @return an advertisement customized for the customer id provided, or an empty advertisement if one could
-     *     not be generated.
+     * not be generated.
      */
     public GeneratedAdvertisement selectAdvertisement(String customerId, String marketplaceId) {
         /*GeneratedAdvertisement generatedAdvertisement = new EmptyGeneratedAdvertisement();
@@ -78,30 +80,48 @@ public class AdvertisementSelectionLogic {
             LOG.warn("MarketplaceId cannot be null or empty. Returning empty ad.");
         } else {
             final List<AdvertisementContent> contents = contentDao.get(marketplaceId);
-            List<AdvertisementContent> eligibleAds = new ArrayList<>();
+            TreeMap<Double, AdvertisementContent> adsByCTR = new TreeMap<>(Collections.reverseOrder());
+            //List<AdvertisementContent> eligibleAds = new ArrayList<>();
 
             if (CollectionUtils.isNotEmpty(contents)) {
                 for (AdvertisementContent content : contents) {
                     List<TargetingGroup> targetingGroups = targetingGroupDao.get(content.getContentId());
-                    TargetingEvaluator evaluator = new TargetingEvaluator(new RequestContext(customerId, marketplaceId)); // Ensure requestContext is available
+                    TargetingEvaluator evaluator = new TargetingEvaluator(new RequestContext(customerId, marketplaceId));
 
                     // Check eligibility using streams
                     boolean isEligible = targetingGroups.stream()
                             .anyMatch(targetingGroup -> evaluator.evaluate(targetingGroup).isTrue());
 
                     if (isEligible) {
-                        eligibleAds.add(content);
-                    }
-                }
+                        // Find the maximum CTR from eligible targeting groups
+                        double maxCTR = targetingGroups.stream()
+                                .filter(targetingGroup -> evaluator.evaluate(targetingGroup).isTrue()) // Ensure it's eligible
+                                .mapToDouble(TargetingGroup::getClickThroughRate) // Get the CTR
+                                .max() // Find the maximum CTR
+                                .orElse(0.0); // Default to 0.0 if no eligible groups
 
-                // Randomly select one of the eligible ads
-                if (!eligibleAds.isEmpty()) {
-                    AdvertisementContent randomAdvertisementContent = eligibleAds.get(random.nextInt(eligibleAds.size()));
-                    generatedAdvertisement = new GeneratedAdvertisement(randomAdvertisementContent);
+                        // Add to TreeMap for sorting by CTR
+                        adsByCTR.put(maxCTR, content);
+                    }
+
+                    //eligibleAds.add(content);
                 }
             }
-        }
 
+            // Randomly select one of the eligible ads
+            //if (!eligibleAds.isEmpty()) {
+            //    AdvertisementContent randomAdvertisementContent = eligibleAds.get(random.nextInt(eligibleAds.size()));
+            //    generatedAdvertisement = new GeneratedAdvertisement(randomAdvertisementContent);
+            //}
+
+            // Get the ad with the highest CTR
+            if (!adsByCTR.isEmpty()) {
+                AdvertisementContent bestAdContent = adsByCTR.firstEntry().getValue(); // Get the ad with the highest CTR
+                generatedAdvertisement = new GeneratedAdvertisement(bestAdContent);
+            }
+        }
         return generatedAdvertisement;
+
     }
 }
+

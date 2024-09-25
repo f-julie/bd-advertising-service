@@ -18,16 +18,22 @@ public class AdvertisementContent {
     private String renderableContent;
     private String marketplaceId;
 
+    //Added for Sprint 27 Mastery Task 3
+    //private double clickThroughRate; // Add the CTR property
+
+
     /**
      * An Advertisement's content contains an id that is unique to the template used to generate its renderable content.
      * @param contentId The unique identifier for this piece of content.
      * @param renderableContent Html and css to be displayed on the retail website.
      * @param marketplaceId Which marketplace this advertisement should display in
      */
-    protected AdvertisementContent(String contentId, String renderableContent, String marketplaceId) {
+    protected AdvertisementContent(String contentId, String renderableContent, String marketplaceId) { //}, double clickThroughRate) {
         this.contentId = contentId;
         this.renderableContent = renderableContent;
         this.marketplaceId = marketplaceId;
+        //Added for Sprint 27 Mastery Task 3
+        //this.clickThroughRate = clickThroughRate; // Initialize the CTR
     }
 
     /**
@@ -61,6 +67,17 @@ public class AdvertisementContent {
     public void setMarketplaceId(String marketplaceId) {
         this.marketplaceId = marketplaceId;
     }
+
+    //Added for Sprint 27 Mastery Task 3
+    //@DynamoDBAttribute(attributeName = "ClickThroughRate") // DynamoDB attribute for CTR
+    //public double getClickThroughRate() {
+    //    return clickThroughRate;
+    //}
+
+    //Added for Sprint 27 Mastery Task 3
+    //public void setClickThroughRate(double clickThroughRate) {
+    //    this.clickThroughRate = clickThroughRate; // Add setter for CTR
+    //}
 
     @Override
     public int hashCode() {
@@ -98,12 +115,15 @@ public class AdvertisementContent {
         private String renderableContent;
         private String marketplaceId;
 
+        //Added for Sprint 27 Mastery Task 3
+        //private double clickThroughRate; // Add the CTR property
+
         /**
          * Use the properties provided to create an AdvertisementContent.
          * @return The content of an advertisement.
          */
         public AdvertisementContent build() {
-            return new AdvertisementContent(contentId, renderableContent, marketplaceId);
+            return new AdvertisementContent(contentId, renderableContent, marketplaceId); //, clickThroughRate);
         }
 
         /**
@@ -135,5 +155,12 @@ public class AdvertisementContent {
             this.marketplaceId = marketplaceIdToUse;
             return this;
         }
+
+        //Added for Sprint 27 Mastery Task 3
+        //public Builder withClickThroughRate(double clickThroughRateToUse) {
+        //    this.clickThroughRate = clickThroughRateToUse;
+        //    return this;
+        //}
+
     }
 }
